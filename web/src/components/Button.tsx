@@ -1,7 +1,7 @@
 // web/src/components/Button.tsx
 // Primary, secondary, destructive buttons
 
-import { forwardRef, ButtonHTMLAttributes } from 'react';
+import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost';
 

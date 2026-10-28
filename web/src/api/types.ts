@@ -1,6 +1,7 @@
 // web/src/api/types.ts
 // API interface for both mock and real implementations
 
+export type { ActiveRide, HistoryItem, LiveStat, Place, TargetPref } from '../types/contract';
 import type { ActiveRide, HistoryItem, LiveStat, Place, TargetPref } from '../types/contract';
 
 export interface CreateRideRequestInput {

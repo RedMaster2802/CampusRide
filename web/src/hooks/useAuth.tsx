@@ -1,8 +1,9 @@
 // web/src/hooks/useAuth.ts
 // Authentication hook
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api';
+import { supabase } from '../api/supabase';
 import type { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -22,13 +23,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Get initial session
-    api.supabase?.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
       setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = api.supabase?.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
 
@@ -53,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshUser = async () => {
-    const { data: { session } } = await api.supabase?.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     setUser(session?.user || null);
   };
 

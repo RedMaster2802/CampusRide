@@ -1,11 +1,18 @@
 // web/src/lib/errors.ts
 // Error code to user message mapping (CONTRACT section 6)
 
-import { cfg } from './config';
-
 export interface ApiError extends Error {
   code: string;
   detail?: string;
+}
+
+function getConfigValue(key: string): number {
+  // Fallback defaults matching CONTRACT.md
+  const defaults: Record<string, number> = {
+    min_window_minutes: 30,
+    max_window_minutes: 180,
+  };
+  return defaults[key] ?? 0;
 }
 
 export function getErrorMessage(error: ApiError): string {
@@ -32,10 +39,10 @@ export function getErrorMessage(error: ApiError): string {
       return 'Pick a valid time window in the future.';
     
     case 'ERR_WINDOW_TOO_SHORT':
-      return `Window must be at least ${cfg().min_window_minutes} minutes.`;
+      return `Window must be at least ${getConfigValue('min_window_minutes')} minutes.`;
     
     case 'ERR_WINDOW_TOO_LONG':
-      return `Window can be at most ${Math.round(cfg().max_window_minutes / 60)} hours.`;
+      return `Window can be at most ${Math.round(getConfigValue('max_window_minutes') / 60)} hours.`;
     
     case 'ERR_TOO_FAR_AHEAD':
       return 'You can plan at most 24 hours ahead.';
@@ -77,14 +84,6 @@ function formatIST(iso: string): string {
   } catch {
     return iso;
   }
-}
-
-function cfg(): any {
-  // This will be replaced by actual config from getConfig()
-  return {
-    min_window_minutes: 30,
-    max_window_minutes: 180,
-  };
 }
 
 export function isRetryableError(error: ApiError): boolean {

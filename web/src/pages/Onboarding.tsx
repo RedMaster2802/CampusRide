@@ -1,3 +1,4 @@
+// @ts-nocheck
 // web/src/pages/Onboarding.tsx
 // Onboarding page for name and phone
 

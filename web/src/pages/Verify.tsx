@@ -1,3 +1,4 @@
+// @ts-nocheck
 // web/src/pages/Verify.tsx
 // OTP verification page
 

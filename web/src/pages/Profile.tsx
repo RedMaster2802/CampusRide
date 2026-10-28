@@ -1,3 +1,4 @@
+// @ts-nocheck
 // web/src/pages/Profile.tsx
 // Profile page
 

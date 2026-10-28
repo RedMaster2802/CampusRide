@@ -2,12 +2,11 @@
 // Realtime subscription to notifications table
 
 import { useEffect, useRef } from 'react';
-import { api } from '../api';
 import { supabase } from '../api/supabase';
 
 export function useRealtime(userId: string | undefined, poolId: string | undefined, onNotification: () => void) {
   const channelRef = useRef<any>(null);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -15,14 +14,12 @@ export function useRealtime(userId: string | undefined, poolId: string | undefin
     const isMock = import.meta.env.VITE_USE_MOCK === 'true';
     
     if (isMock) {
-      // Mock mode: poll every 3 seconds
       const interval = setInterval(() => {
         onNotification();
       }, 3000);
       return () => clearInterval(interval);
     }
 
-    // Real mode: subscribe to notifications
     const channel = supabase
       .channel('gatepool-user')
       .on(
@@ -33,8 +30,7 @@ export function useRealtime(userId: string | undefined, poolId: string | undefin
           table: 'notifications',
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
-          // Debounce 300ms
+        (_payload) => {
           if (debounceRef.current) clearTimeout(debounceRef.current);
           debounceRef.current = setTimeout(() => {
             onNotification();
@@ -54,7 +50,6 @@ export function useRealtime(userId: string | undefined, poolId: string | undefin
   }, [userId, poolId, onNotification]);
 }
 
-// Mock polling helper for active ride
 export function useMockPolling(enabled: boolean, callback: () => void, interval = 3000) {
   useEffect(() => {
     if (!enabled) return;

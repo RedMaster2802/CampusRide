@@ -4,7 +4,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { Routes } from './routes';
+import { AppRoutes } from './routes';
 import { AuthProvider } from './hooks/useAuth';
 import { useOnline } from './hooks/useOnline';
 import { Banner } from './components/Banner';
@@ -30,7 +30,7 @@ export function App() {
             {!isOnline && (
               <Banner type="warning" message="You are offline. Some features may not work." />
             )}
-            <Routes />
+            <AppRoutes />
             <Toaster 
               position="bottom-center" 
               toastOptions={{ 

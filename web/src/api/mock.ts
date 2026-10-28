@@ -1,7 +1,7 @@
 // web/src/api/mock.ts
 // Mock implementation for development (follows CONTRACT v1.2 rules)
 
-import type { RideApi, ApiError, CreateRideRequestInput, ActiveRide, HistoryItem, LiveStat, Place, TargetPref } from './types';
+import type { RideApi, ApiError, CreateRideRequestInput, ActiveRide, LiveStat, Place } from './types';
 import { PLACES } from '../types/contract';
 
 // In-memory state
@@ -421,15 +421,16 @@ export const mockApi: RideApi = {
     if (!member) throw mkError('ERR_NOT_MEMBER');
     
     // Check for strike
+    const user = users.get(req.user_id);
     if (pool.status === 'CONFIRMED' && pool.meet_at) {
       const lockAt = new Date(new Date(pool.meet_at).getTime() - config.lock_minutes_before_meet * 60000);
       const graceAt = new Date(new Date(pool.confirmed_at).getTime() + config.cancel_grace_minutes * 60000);
-      if (new Date() > lockAt && new Date() > graceAt) {
+      if (new Date() > lockAt && new Date() > graceAt && user) {
         strikeAdded = true;
-        u.strikes += 1;
-        if (u.strikes >= config.strike_block_threshold) {
-          u.blocked_until = addMinutes(now(), config.strike_block_days * 24 * 60);
-          u.strikes = 0;
+        user.strikes += 1;
+        if (user.strikes >= config.strike_block_threshold) {
+          user.blocked_until = addMinutes(now(), config.strike_block_days * 24 * 60);
+          user.strikes = 0;
         }
       }
     }

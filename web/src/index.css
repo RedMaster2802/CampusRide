@@ -1,29 +1,31 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-accent: #1F5F4A;
+  --color-accent-dark: #6FBF9F;
+  --color-danger: #B3261E;
+  --color-background: #FFFFFF;
+  --color-text: #111111;
+  --color-text-secondary: #666666;
+  --color-border: #E3E3E3;
+  --color-dark-background: #0E0E0E;
+  --color-dark-text: #EDEDED;
+  --color-dark-text-secondary: #9A9A9A;
+  --color-dark-border: #2A2A2A;
+  
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  
+  --radius-input: 6px;
+  --radius-btn: 6px;
+  
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-40: 40px;
+}
 
 @layer base {
-  :root {
-    --color-accent: #1F5F4A;
-    --color-accent-dark: #6FBF9F;
-    --color-danger: #B3261E;
-    --color-background: #FFFFFF;
-    --color-text: #111111;
-    --color-text-secondary: #666666;
-    --color-border: #E3E3E3;
-    --color-dark-background: #0E0E0E;
-    --color-dark-text: #EDEDED;
-    --color-dark-text-secondary: #9A9A9A;
-    --color-dark-border: #2A2A2A;
-  }
-
-  .dark {
-    --color-background: #0E0E0E;
-    --color-text: #EDEDED;
-    --color-text-secondary: #9A9A9A;
-    --color-border: #2A2A2A;
-  }
-
   * {
     box-sizing: border-box;
   }
@@ -33,7 +35,7 @@
   }
 
   body {
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-sans);
     font-size: 16px;
     line-height: 1.5;
     color: var(--color-text);

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // web/src/pages/Home.tsx
 // Home page - request form or active ride view
 

@@ -2,7 +2,7 @@
 // Time window picker with quick chips and custom
 
 import { useState, useMemo } from 'react';
-import { formatTime, formatDate, isToday, isTomorrow, parseLocalToIST, getISTNow } from '../lib/time';
+import { formatTime, formatDate, formatDateTime, isToday, isTomorrow, parseLocalToIST, getISTNow } from '../lib/time';
 
 interface TimeWindowPickerProps {
   windowStart: string;

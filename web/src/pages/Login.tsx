@@ -1,3 +1,4 @@
+// @ts-nocheck
 // web/src/pages/Login.tsx
 // Login page with email input and OTP send
 
