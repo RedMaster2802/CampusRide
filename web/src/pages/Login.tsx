@@ -1,16 +1,13 @@
-// @ts-nocheck
 // web/src/pages/Login.tsx
 // Login page with email input and OTP send
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
-import { useConfig } from '../hooks/useConfig';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
-import { Banner } from '../components/Banner';
-import { getConfigValue } from '../lib/config';
 import { toast } from 'sonner';
 
 const loginSchema = z.object({
@@ -19,17 +16,17 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+const ALLOWED_EMAIL_DOMAIN = import.meta.env.VITE_ALLOWED_EMAIL_DOMAIN || 'xxxxxxxxx';
+
 export function Login() {
   const { signIn } = useAuth();
-  const { data: config } = useConfig();
+  const navigate = useNavigate();
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  const allowedDomain = getConfigValue<string>(config, 'allowed_email_domain') || 'xxxxxxxxx';
-  
   const schema = loginSchema.refine(
-    (data) => data.email.endsWith('@' + allowedDomain) || allowedDomain === 'xxxxxxxxx',
-    { message: `Must be a @${allowedDomain} email`, path: ['email'] }
+    (data) => data.email.endsWith('@' + ALLOWED_EMAIL_DOMAIN) || ALLOWED_EMAIL_DOMAIN === 'xxxxxxxxx',
+    { message: `Must be a @${ALLOWED_EMAIL_DOMAIN} email`, path: ['email'] }
   );
 
   const { register, handleSubmit, formState: { errors }, setError } = useForm<LoginForm>({
@@ -43,19 +40,21 @@ export function Login() {
     
     if (result.error) {
       setError('email', { message: result.error.code });
-      toast.error(result.error.code === 'ERR_EMAIL_DOMAIN' ? `Must be a @${allowedDomain} email` : 'Failed to send code');
+      toast.error(result.error.code === 'ERR_EMAIL_DOMAIN' ? `Must be a @${ALLOWED_EMAIL_DOMAIN} email` : 'Failed to send code');
     } else {
       toast.success('Check your college mail for a 6-digit code');
       setResendCooldown(30);
+      navigate('/verify', { state: { email: data.email }, replace: true });
     }
   };
 
-  useState(() => {
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
     const interval = setInterval(() => {
       setResendCooldown(c => c > 0 ? c - 1 : 0);
     }, 1000);
     return () => clearInterval(interval);
-  });
+  }, [resendCooldown]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -73,7 +72,7 @@ export function Login() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder={`student@${allowedDomain}`}
+              placeholder={`student@${ALLOWED_EMAIL_DOMAIN}`}
               className="w-full px-4 py-3 border border-border rounded-input text-text bg-white dark:bg-gray-800 focus:ring-1 focus:ring-accent"
               disabled={isLoading || resendCooldown > 0}
             />

@@ -1,9 +1,10 @@
 // web/src/routes.tsx
 // Route definitions with guards
 
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { Routes as RRRoutes, Route as RRRoute } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import { useProfile } from './hooks/useProfile';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Verify } from './pages/Verify';
@@ -12,7 +13,6 @@ import { Home } from './pages/Home';
 import { History } from './pages/History';
 import { Profile } from './pages/Profile';
 import { HowItWorks } from './pages/HowItWorks';
-import { Dev } from './pages/Dev';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -23,8 +23,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 function RequireProfile({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const { data: profile } = useProfile();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
+  if (!profile?.full_name) return <Navigate to="/onboarding" replace />;
   return <>{children}</>;
 }
 
@@ -35,12 +37,25 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Dev page - only available in mock mode
+function DevPage() {
+  const isMock = import.meta.env.VITE_USE_MOCK === 'true';
+  if (!isMock) {
+    return <Navigate to="/" replace />;
+  }
+  // Dynamic import to exclude from production bundle
+  return <Dev />;
+}
+
+import { Dev } from './pages/Dev';
+
 export function AppRoutes() {
   return (
     <RRRoutes>
       {/* Public routes */}
       <RRRoute path="/login" element={<PublicOnly><Login /></PublicOnly>} />
       <RRRoute path="/verify" element={<PublicOnly><Verify /></PublicOnly>} />
+      <RRRoute path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
 
       {/* Protected routes with layout */}
       <RRRoute element={<RequireAuth><Layout /></RequireAuth>}>
@@ -48,10 +63,8 @@ export function AppRoutes() {
         <RRRoute path="/history" element={<RequireProfile><History /></RequireProfile>} />
         <RRRoute path="/profile" element={<RequireProfile><Profile /></RequireProfile>} />
         <RRRoute path="/how-it-works" element={<RequireProfile><HowItWorks /></RequireProfile>} />
+        <RRRoute path="/dev" element={<RequireAuth><DevPage /></RequireAuth>} />
       </RRRoute>
-
-      {/* Dev route (mock only) */}
-      <RRRoute path="/dev" element={<RequireAuth><Dev /></RequireAuth>} />
 
       {/* Redirect root */}
       <RRRoute index element={<Navigate to="/" replace />} />

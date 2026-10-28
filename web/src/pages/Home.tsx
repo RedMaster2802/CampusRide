@@ -1,4 +1,3 @@
-// @ts-nocheck
 // web/src/pages/Home.tsx
 // Home page - request form or active ride view
 
@@ -11,6 +10,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useActiveRide } from '../hooks/useActiveRide';
 import { useConfig } from '../hooks/useConfig';
 import { api } from '../api';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Place, TargetPref } from '../types/contract';
 import { PLACES, PLACE_LABEL } from '../types/contract';
 import { formatTime, formatDateTime, parseLocalToIST, getISTNow } from '../lib/time';
@@ -38,6 +38,14 @@ const requestSchema = z.object({
 }).refine((data) => data.from !== data.to, {
   message: 'Pick two different places',
   path: ['to'],
+}).refine((data) => {
+  const start = new Date(data.window_start);
+  const end = new Date(data.window_end);
+  const diffMinutes = (end.getTime() - start.getTime()) / 60000;
+  return diffMinutes >= 30 && diffMinutes <= 180;
+}, {
+  message: 'Window must be between 30 and 180 minutes',
+  path: ['window_end'],
 });
 
 type RequestForm = z.infer<typeof requestSchema>;
@@ -53,44 +61,44 @@ export function Home() {
   const navigate = useNavigate();
   const { data: config } = useConfig();
   const { data: activeRide, isLoading, refetch } = useActiveRide();
+  const queryClient = useQueryClient();
 
   const minWindow = config?.min_window_minutes as number || 30;
   const maxWindow = config?.max_window_minutes as number || 180;
   const maxAdvance = config?.max_advance_minutes as number || 1440;
   const maintenanceMode = config?.maintenance_mode as boolean || false;
 
-  // Form state
-  const [formData, setFormData] = useState<Partial<RequestForm>>({
-    from: null,
-    to: null,
-    party_size: 1,
-    target: '4',
-    window_start: '',
-    window_end: '',
+  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<RequestForm>({
+    resolver: zodResolver(requestSchema),
+    defaultValues: {
+      from: '',
+      to: '',
+      party_size: 1,
+      target: '4',
+      window_start: '',
+      window_end: '',
+    },
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formData = watch();
 
-  // Initialize window to "Leave now (30 min)"
   useEffect(() => {
     const now = getISTNow();
     const start = now.toISOString();
     const end = new Date(now.getTime() + 30 * 60000).toISOString();
-    setFormData(prev => ({ ...prev, window_start: start, window_end: end }));
-  }, []);
+    setValue('window_start', start);
+    setValue('window_end', end);
+  }, [setValue]);
 
-  // Determine max party size based on target
   const maxPartySize = formData.target === '6' ? 5 : 3;
 
-  // Clamp party size when target changes
   useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      party_size: Math.min(prev.party_size || 1, maxPartySize),
-    }));
-  }, [maxPartySize]);
+    if (formData.party_size && formData.party_size > maxPartySize) {
+      setValue('party_size', maxPartySize);
+    }
+  }, [formData.target, maxPartySize, setValue]);
 
-  // Helper text based on form
   const helperText = (() => {
     if (formData.target === '4' && formData.party_size === 3) return 'You need 1 more rider';
     if (formData.target === '4' && formData.party_size === 2) return 'You need 2 more riders';
@@ -103,7 +111,7 @@ export function Home() {
     return '';
   })();
 
-  const handleSubmit = async (data: RequestForm) => {
+  const onSubmit = async (data: RequestForm) => {
     if (maintenanceMode) {
       toast.error('GatePool is paused for maintenance');
       return;
@@ -120,6 +128,8 @@ export function Home() {
         p_window_end: data.window_end,
       });
       
+      queryClient.setQueryData(['activeRide'], result);
+
       if (result.request.status === 'EXPIRED') {
         toast.error('No pool found this time');
       } else if (!result.pool) {
@@ -138,12 +148,10 @@ export function Home() {
     }
   };
 
-  // Show active ride if exists
   if (activeRide) {
-    return <ActiveRideView ride={activeRide} onRefresh={refetch} />;
+    return <ActiveRideView ride={activeRide} onRefresh={refetch} setValue={setValue as (name: string, value: any) => void} />;
   }
 
-  // Request form
   return (
     <div className="min-h-screen pb-24">
       <div className="max-w-md mx-auto px-4 py-8 space-y-8">
@@ -153,20 +161,25 @@ export function Home() {
 
         <h1 className="text-2xl font-semibold text-text">Find a pool</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-8" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8" noValidate>
           <PlacePicker
             from={formData.from as Place | null}
             to={formData.to as Place | null}
-            onFromChange={(p) => setFormData(prev => ({ ...prev, from: p }))}
-            onToChange={(p) => setFormData(prev => ({ ...prev, to: p }))}
-            onSwap={() => setFormData(prev => ({ from: prev.to, to: prev.from }))}
+            onFromChange={(p) => setValue('from', p)}
+            onToChange={(p) => setValue('to', p)}
+            onSwap={() => {
+              const currentFrom = formData.from;
+              const currentTo = formData.to;
+              setValue('from', currentTo);
+              setValue('to', currentFrom);
+            }}
             disabled={isSubmitting}
           />
 
           <Stepper
             label="Group size"
             value={formData.party_size || 1}
-            onChange={(v) => setFormData(prev => ({ ...prev, party_size: v }))}
+            onChange={(v) => setValue('party_size', v)}
             min={1}
             max={maxPartySize}
             disabled={isSubmitting}
@@ -176,7 +189,7 @@ export function Home() {
             <label className="block text-sm font-medium text-text mb-2">Cab size target</label>
             <SegmentedControl
               value={formData.target}
-              onChange={(v) => setFormData(prev => ({ ...prev, target: v }))}
+              onChange={(v) => setValue('target', v as TargetPref)}
               options={TARGET_OPTIONS}
               disabled={isSubmitting}
             />
@@ -185,7 +198,10 @@ export function Home() {
           <TimeWindowPicker
             windowStart={formData.window_start}
             windowEnd={formData.window_end}
-            onChange={(start, end) => setFormData(prev => ({ ...prev, window_start: start, window_end: end }))}
+            onChange={(start, end) => {
+              setValue('window_start', start);
+              setValue('window_end', end);
+            }}
             minWindowMinutes={minWindow}
             maxWindowMinutes={maxWindow}
             maxAdvanceMinutes={maxAdvance}
@@ -205,7 +221,13 @@ export function Home() {
   );
 }
 
-function ActiveRideView({ ride, onRefresh }: { ride: any; onRefresh: () => void }) {
+interface ActiveRideViewProps {
+  ride: any;
+  onRefresh: () => void;
+  setValue: (name: string, value: any) => void;
+}
+
+function ActiveRideView({ ride, onRefresh, setValue }: ActiveRideViewProps) {
   const { user } = useAuth();
   const [cancelConfirm, setCancelConfirm] = useState(false);
 
@@ -214,47 +236,57 @@ function ActiveRideView({ ride, onRefresh }: { ride: any; onRefresh: () => void 
   const members = ride.members;
 
   const handleCancel = async () => {
-    if (!pool || request.status === 'SEARCHING' && !pool) {
-      // Queued or searching - no strike
-      await api.cancelRideRequest(request.id);
-      toast.success('Cancelled');
-      onRefresh();
-      return;
-    }
+    try {
+      if (!pool || request.status === 'SEARCHING' && !pool) {
+        await api.cancelRideRequest(request.id);
+        toast.success('Cancelled');
+        onRefresh();
+        return;
+      }
 
-    if (pool.status === 'CONFIRMED' && pool.lock_at) {
-      const lockTime = new Date(pool.lock_at).getTime();
-      if (Date.now() > lockTime) {
-        if (!cancelConfirm) {
-          setCancelConfirm(true);
-          return;
+      if (pool.status === 'CONFIRMED' && pool.lock_at) {
+        const lockTime = new Date(pool.lock_at).getTime();
+        if (Date.now() > lockTime) {
+          if (!cancelConfirm) {
+            setCancelConfirm(true);
+            return;
+          }
         }
       }
-    }
 
-    const result = await api.cancelRideRequest(request.id);
-    if (result.strike_added) {
-      toast.error('Late cancellation counted as a strike');
-    } else {
-      toast.success('Cancelled');
+      const result = await api.cancelRideRequest(request.id);
+      if (result.strike_added) {
+        toast.error('Late cancellation counted as a strike');
+      } else {
+        toast.success('Cancelled');
+      }
+      onRefresh();
+    } catch (error: any) {
+      toast.error(getErrorMessage(error));
     }
-    onRefresh();
   };
 
   const handleClaimBooker = async () => {
-    if (!pool) return;
-    await api.claimBooker(pool.id);
-    toast.success('You\'re booking the cab');
-    onRefresh();
+    try {
+      if (!pool) return;
+      await api.claimBooker(pool.id);
+      toast.success('You\'re booking the cab');
+      onRefresh();
+    } catch (error: any) {
+      toast.error(getErrorMessage(error));
+    }
   };
 
-  const handleArrived = async (arrived: boolean) => {
-    if (!pool) return;
-    await api.markArrived(pool.id, arrived);
-    onRefresh();
+  const handleArrived = async (userId: string, arrived: boolean) => {
+    try {
+      if (!pool) return;
+      await api.markArrived(pool.id, arrived);
+      onRefresh();
+    } catch (error: any) {
+      toast.error(getErrorMessage(error));
+    }
   };
 
-  // Render based on state
   if (request.status === 'SEARCHING' && !pool) {
     return (
       <div className="min-h-screen pb-24">
@@ -278,14 +310,14 @@ function ActiveRideView({ ride, onRefresh }: { ride: any; onRefresh: () => void 
           <div className="border border-border rounded-input p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-text">{PLACE_LABEL[pool.origin]} to {PLACE_LABEL[pool.destination]}</p>
+                <p className="font-medium text-text">{PLACE_LABEL[pool.origin as Place]} to {PLACE_LABEL[pool.destination as Place]}</p>
                 <p className="text-sm text-text-secondary">{formatDateTime(pool.window_start)} – {formatTime(pool.window_end)}</p>
               </div>
             </div>
             <SeatsBar seatsTaken={pool.seats_taken} capacity={pool.capacity} />
             <p className="text-text-secondary text-center">Finding riders</p>
             
-            <MemberList members={members} currentUserId={user?.id || ''} />
+            <MemberList members={members} currentUserId={user?.id || ''} onArrivedChange={handleArrived} />
             
             <div className="text-sm text-text-secondary text-center">
               If at least {pool.fallback_min_seats} seats are filled we confirm at {formatTime(pool.fallback_at)}, otherwise we will let you know
@@ -309,7 +341,7 @@ function ActiveRideView({ ride, onRefresh }: { ride: any; onRefresh: () => void 
             <div className="text-center space-y-2">
               <p className="text-2xl font-semibold text-text">Meet at {pool.meeting_point_name}</p>
               <Countdown target={pool.meet_at!} />
-              <p className="text-text-secondary">{PLACE_LABEL[pool.origin]} to {PLACE_LABEL[pool.destination]}</p>
+              <p className="text-text-secondary">{PLACE_LABEL[pool.origin as Place]} to {PLACE_LABEL[pool.destination as Place]}</p>
             </div>
 
             <MemberList 
@@ -328,7 +360,7 @@ function ActiveRideView({ ride, onRefresh }: { ride: any; onRefresh: () => void 
 
             {pool.booker_user_id ? (
               <p className="text-sm text-text-secondary text-center">
-                {members.find(m => m.user_id === pool.booker_user_id)?.full_name || 'Someone'} is booking the cab
+                {members.find((m: any) => m.user_id === pool.booker_user_id)?.full_name || 'Someone'} is booking the cab
               </p>
             ) : (
               <Button fullWidth onClick={handleClaimBooker}>I'll book the cab</Button>
@@ -358,16 +390,14 @@ function ActiveRideView({ ride, onRefresh }: { ride: any; onRefresh: () => void 
           title="No pool found this time"
           message="Not enough riders joined before the deadline."
           action={{ label: 'Search again', onClick: () => {
-            // Prefill form with same values
-            setFormData(prev => ({
-              ...prev,
-              from: request.origin,
-              to: request.destination,
-              party_size: request.party_size,
-              target: request.target,
-              window_start: getISTNow().toISOString(),
-              window_end: new Date(getISTNow().getTime() + (new Date(request.window_end).getTime() - new Date(request.window_start).getTime())).toISOString(),
-            }));
+            setValue('from', request.origin);
+            setValue('to', request.destination);
+            setValue('party_size', request.party_size);
+            setValue('target', request.target);
+            const now = getISTNow();
+            setValue('window_start', now.toISOString());
+            const windowDuration = new Date(request.window_end).getTime() - new Date(request.window_start).getTime();
+            setValue('window_end', new Date(now.getTime() + windowDuration).toISOString());
             onRefresh();
           }}}
         />

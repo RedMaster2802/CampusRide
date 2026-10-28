@@ -1,31 +1,33 @@
-// @ts-nocheck
 // web/src/pages/Profile.tsx
 // Profile page
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../api';
+import { useProfile } from '../hooks/useProfile';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { Button } from '../components/Button';
-import { Banner } from '../components/Banner';
 import { toast } from 'sonner';
 
+// Unicode-aware regex for name validation (mirrors DB check: ^[[:alpha:] .'-]{2,60}$)
+const nameRegex = /^[\p{L} .'-]{2,60}$/u;
+
 const profileSchema = z.object({
-  full_name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name too long').regex(/^[[:alpha:] .'-]{2,60}$/, 'Invalid characters'),
+  full_name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name too long').regex(nameRegex, 'Invalid characters'),
   phone: z.string().optional().refine((val) => !val || /^[0-9]{10}$/.test(val), 'Phone must be 10 digits'),
-  share_phone: z.boolean().default(false),
+  share_phone: z.boolean(),
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
 
 export function Profile() {
   const { user, signOut, refreshUser } = useAuth();
+  const { data: profile } = useProfile();
   const { prompt, isInstalled, isIOS, install } = useInstallPrompt();
   const [isLoading, setIsLoading] = useState(false);
-  const [showBlocked, setShowBlocked] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, watch, setValue, reset } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -33,11 +35,15 @@ export function Profile() {
   });
 
   // Load profile on mount
-  useState(() => {
-    api.getProfile().then(data => {
-      if (data) reset(data);
-    });
-  });
+  useEffect(() => {
+    if (profile) {
+      reset({
+        full_name: profile.full_name,
+        phone: profile.phone ?? '',
+        share_phone: profile.share_phone,
+      });
+    }
+  }, [profile, reset]);
 
   const onSubmit = async (data: ProfileForm) => {
     setIsLoading(true);

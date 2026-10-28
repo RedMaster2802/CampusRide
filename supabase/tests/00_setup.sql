@@ -1,6 +1,8 @@
 -- supabase/tests/00_setup.sql
 -- Test setup: create test users and helper functions
 
+create extension if not exists pgtap;
+
 -- Helper to set up authenticated context for a test user
 create or replace function test_as_user(p_email text) returns void
 language plpgsql security definer set search_path = public, pg_temp as $$
@@ -23,7 +25,7 @@ begin
   
   -- Set role for this session
   perform set_config('request.jwt.claims', jsonb_build_object('sub', v_uid)::text, true);
-  perform set local role authenticated;
+  execute 'set local role authenticated';
 end $$;
 
 -- Helper to create a ride request in tests

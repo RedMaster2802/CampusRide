@@ -10,6 +10,7 @@ build/
 
 # Environment files
 .env*
+!.env.example
 
 # IDE
 .vscode/
@@ -35,8 +36,13 @@ coverage/
 supabase/.temp/
 supabase/.branches/
 
-# Markdown documentation (do not push)
-*.md
+# Agent/Internal documentation (do not push)
+AGENT_*.md
+CLAUDE.md
+CONTRACT.md
+LOADTEST.md
+RUNBOOK.md
+SECURITY.md
 
 # Misc
 *.pem

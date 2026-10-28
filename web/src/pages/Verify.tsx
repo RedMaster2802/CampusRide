@@ -1,4 +1,3 @@
-// @ts-nocheck
 // web/src/pages/Verify.tsx
 // OTP verification page
 
@@ -23,20 +22,30 @@ export function Verify() {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const inputsRef = useRef<HTMLInputElement[]>([]);
+  const submittedRef = useRef(false);
 
   // Get email from location state
   const email = (location.state as any)?.email || '';
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<VerifyForm>({
+  // Redirect to login if no email
+  useEffect(() => {
+    if (!email) {
+      navigate('/login', { replace: true });
+    }
+  }, [email, navigate]);
+
+  const { handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<VerifyForm>({
     resolver: zodResolver(verifySchema),
     mode: 'onChange',
+    defaultValues: { code: '' },
   });
 
-  const code = watch('code');
+  const code = watch('code') || '';
 
   // Auto-submit when 6 digits entered
   useEffect(() => {
-    if (code.length === 6 && !errors.code) {
+    if (code.length === 6 && !errors.code && !submittedRef.current) {
+      submittedRef.current = true;
       handleSubmit(onSubmit)();
     }
   }, [code, errors.code, handleSubmit]);
@@ -48,10 +57,28 @@ export function Verify() {
     
     if (result.error) {
       toast.error('Wrong code');
-      setValue('code', '');
+      reset({ code: '' });
       inputsRef.current[0]?.focus();
+      submittedRef.current = false;
     } else {
       navigate('/', { replace: true });
+    }
+  };
+
+  const handleInputChange = (index: number, value: string) => {
+    const newCode = code.slice(0, index) + value + code.slice(index + 1);
+    setValue('code', newCode, { shouldValidate: true });
+
+    if (value && index < 5) {
+      inputsRef.current[index + 1]?.focus();
+    } else if (!value && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !code[index] && index > 0) {
+      inputsRef.current[index - 1]?.focus();
     }
   };
 
@@ -71,18 +98,9 @@ export function Verify() {
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 maxLength={1}
-                {...register('code', { value: code[i] || '' })}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val && i < 5) inputsRef.current[i + 1]?.focus();
-                  if (!val && i > 0) inputsRef.current[i - 1]?.focus();
-                  setValue('code', code.slice(0, i) + val + code.slice(i + 1));
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Backspace' && !code[i] && i > 0) {
-                    inputsRef.current[i - 1]?.focus();
-                  }
-                }}
+                value={code[i] || ''}
+                onChange={(e) => handleInputChange(i, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(i, e)}
                 className="w-10 h-12 text-center text-xl font-medium border border-border rounded-input text-text bg-white dark:bg-gray-800 focus:ring-1 focus:ring-accent"
                 disabled={isLoading}
               />

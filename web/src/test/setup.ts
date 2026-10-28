@@ -1,0 +1,33 @@
+// web/src/test/setup.ts
+import '@testing-library/jest-dom';
+import { vi } from 'vitest';
+
+// Mock window.location for tests
+Object.defineProperty(window, 'location', {
+  value: {
+    origin: 'http://localhost:5173',
+    href: 'http://localhost:5173',
+  },
+  writable: true,
+});
+
+// Mock matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+// Mock navigator.onLine
+Object.defineProperty(navigator, 'onLine', {
+  writable: true,
+  value: true,
+});

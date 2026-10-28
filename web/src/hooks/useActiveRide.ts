@@ -36,7 +36,7 @@ export function useActiveRide(options?: Partial<UseQueryOptions<ActiveRide | nul
     },
     enabled: !!user,
     refetchInterval: (query) => {
-      if (!query.state.data) return false;
+      if (!query.state.data) return POLL_INTERVAL_SEARCHING;
       const ride = query.state.data;
       if (ride.request.status === 'EXPIRED' || ride.request.status === 'CANCELLED' || ride.request.status === 'COMPLETED') {
         return false;

@@ -24,7 +24,7 @@ begin
   if v is null then
     raise exception 'config key % not found', p_key;
   end if;
-  return v::text;
+  return v #>> '{}';
 end $$;
 
 -- Helper: notify - insert notification
@@ -170,8 +170,7 @@ declare
   v_req ride_requests%rowtype;
   v_pool pools%rowtype;
   v_capacity smallint;
-  v_seats_left_before smallint;
-  v_seats_left_after smallint;
+  v_seats_taken smallint;
   v_fallback_min int;
 begin
   -- Load request for update
@@ -187,7 +186,7 @@ begin
     and p.origin = v_req.origin
     and p.destination = v_req.destination
     and p.seats_taken + v_req.party_size <= p.capacity
-    and (v_req.target = 'ANY' or p.capacity = v_req.target::int)
+    and (v_req.target = 'ANY' or p.capacity = v_req.target::text::int)
     and extract(epoch from (
       least(p.window_end, v_req.window_end)
       - greatest(p.window_start, v_req.window_start, now())
@@ -769,7 +768,7 @@ begin
   end loop;
   
   -- Purge (at most once per hour)
-  select value::timestamptz into v_last_purge from app_config where key = 'last_purge_at';
+  select (value #>> '{}')::timestamptz into v_last_purge from app_config where key = 'last_purge_at';
   if v_last_purge is null or p_now > v_last_purge + v_purge_interval then
     -- Purge old notifications (30 days)
     delete from notifications where created_at < p_now - interval '30 days';
@@ -846,3 +845,23 @@ revoke all on function process_match_queue(place, place, int, boolean) from publ
 revoke all on function run_pool_maintenance(timestamptz) from public;
 revoke all on function enforce_college_email() from public;
 revoke all on function handle_new_user() from public;
+
+-- Security: explicitly revoke from all non-admin roles for helper functions
+revoke all on function cfg_num(text) from public, anon, authenticated;
+revoke all on function cfg_text(text) from public, anon, authenticated;
+revoke all on function notify(uuid, text, text, text, jsonb) from public, anon, authenticated;
+revoke all on function window_overlap_minutes(timestamptz, timestamptz, timestamptz, timestamptz) from public, anon, authenticated;
+revoke all on function check_rate_limit(text, int) from public, anon, authenticated;
+revoke all on function audit(text, text, uuid, jsonb) from public, anon, authenticated;
+revoke all on function recompute_pool(uuid) from public, anon, authenticated;
+revoke all on function confirm_pool(uuid, timestamptz) from public, anon, authenticated;
+revoke all on function route_lock_key(place, place) from public, anon, authenticated;
+revoke all on function try_match(uuid) from public, anon, authenticated;
+revoke all on function process_match_queue(place, place, int, boolean) from public, anon, authenticated;
+revoke all on function run_pool_maintenance(timestamptz) from public, anon, authenticated;
+revoke all on function enforce_college_email() from public, anon, authenticated;
+revoke all on function handle_new_user() from public, anon, authenticated;
+
+-- Default privileges: prevent auto-grants to anon/authenticated
+alter default privileges in schema public revoke execute on functions from public, anon, authenticated;
+alter default privileges in schema public revoke all on tables from public, anon, authenticated;

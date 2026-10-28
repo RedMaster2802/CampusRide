@@ -1,4 +1,3 @@
-// @ts-nocheck
 // web/src/pages/Onboarding.tsx
 // Onboarding page for name and phone
 
@@ -11,10 +10,13 @@ import { api } from '../api';
 import { Button } from '../components/Button';
 import { toast } from 'sonner';
 
+// Unicode-aware regex for name validation (mirrors DB check: ^[[:alpha:] .'-]{2,60}$)
+const nameRegex = /^[\p{L} .'-]{2,60}$/u;
+
 const onboardingSchema = z.object({
-  full_name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name too long').regex(/^[[:alpha:] .'-]{2,60}$/, 'Invalid characters'),
+  full_name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name too long').regex(nameRegex, 'Invalid characters'),
   phone: z.string().optional().refine((val) => !val || /^[0-9]{10}$/.test(val), 'Phone must be 10 digits'),
-  share_phone: z.boolean().default(false),
+  share_phone: z.boolean(),
 });
 
 type OnboardingForm = z.infer<typeof onboardingSchema>;
