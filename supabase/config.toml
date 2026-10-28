@@ -1,0 +1,17 @@
+[project]
+ref = "local"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324
+
+[auth]
+port = 54325

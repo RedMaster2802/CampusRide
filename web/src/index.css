@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-accent: #1F5F4A;
+    --color-accent-dark: #6FBF9F;
+    --color-danger: #B3261E;
+    --color-background: #FFFFFF;
+    --color-text: #111111;
+    --color-text-secondary: #666666;
+    --color-border: #E3E3E3;
+    --color-dark-background: #0E0E0E;
+    --color-dark-text: #EDEDED;
+    --color-dark-text-secondary: #9A9A9A;
+    --color-dark-border: #2A2A2A;
+  }
+
+  .dark {
+    --color-background: #0E0E0E;
+    --color-text: #EDEDED;
+    --color-text-secondary: #9A9A9A;
+    --color-border: #2A2A2A;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--color-text);
+    background-color: var(--color-background);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body {
+      color: var(--color-dark-text);
+      background-color: var(--color-dark-background);
+    }
+  }
+
+  input, button, textarea, select {
+    font: inherit;
+    color: inherit;
+  }
+
+  a {
+    color: var(--color-accent);
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: white;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Sonner toast customization */
+[data-sonner-toast] {
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-background) !important;
+  color: var(--color-text) !important;
+  box-shadow: none !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  border-color: var(--color-danger) !important;
+}
+
+.dark [data-sonner-toast] {
+  background: var(--color-dark-background) !important;
+  color: var(--color-dark-text) !important;
+  border-color: var(--color-dark-border) !important;
+}

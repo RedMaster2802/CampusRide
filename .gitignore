@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.local
+
+# Environment files
+.env
+.env.local
+.env.*.local
+web/.env.local
+web/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Project documentation (do not push)
+CONTRACT.md
+AGENT_BACKEND.md
+AGENT_FRONTEND.md
+AGENT_DOCS.md
+AGENT_BACKEND (1).md
+CLAUDE.md
+SECURITY.md
+LOADTEST.md
+RUNBOOK.md
+
+# Misc
+*.pem
+.vercel
+.netlify
