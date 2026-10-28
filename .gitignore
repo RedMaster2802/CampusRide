@@ -9,11 +9,7 @@ build/
 *.local
 
 # Environment files
-.env
-.env.local
-.env.*.local
-web/.env.local
-web/.env
+.env*
 
 # IDE
 .vscode/
@@ -39,16 +35,8 @@ coverage/
 supabase/.temp/
 supabase/.branches/
 
-# Project documentation (do not push)
-CONTRACT.md
-AGENT_BACKEND.md
-AGENT_FRONTEND.md
-AGENT_DOCS.md
-AGENT_BACKEND (1).md
-CLAUDE.md
-SECURITY.md
-LOADTEST.md
-RUNBOOK.md
+# Markdown documentation (do not push)
+*.md
 
 # Misc
 *.pem
