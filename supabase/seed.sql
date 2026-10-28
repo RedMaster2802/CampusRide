@@ -1,0 +1,46 @@
+-- seed.sql — runs after all migrations on `supabase db reset`.
+-- Only app_config is seeded by the migrations themselves.
+--
+-- DEMO DATA (commented out — never load fake data in production):
+-- un-comment to create 12 fake users and their requests for a demo or for
+-- local frontend development. Emails use the configured allowed_email_domain
+-- placeholder; the signup trigger accepts it.
+--
+-- begin;
+--   \set i 1
+--   -- 12 users: demo01..demo12
+--   insert into auth.users (id, email, encrypted_password, aud, role,
+--     email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+--     created_at, updated_at)
+--   select
+--     gen_random_uuid(),
+--     'demo' || lpad(g::text, 2, '0') || '@xxxxxxxxx',
+--     '', 'authenticated', 'authenticated',
+--     now(), '{"provider":"email","providers":["email"]}', '{}',
+--     now(), now()
+--   from generate_series(1, 12) g;
+--
+--   -- give them names
+--   update profiles
+--   set full_name = 'Demo Student ' || substring(email from 5 for 2)
+--   where email like 'demo%@xxxxxxxxx';
+--
+--   -- 4 singles on SECTOR_128 -> OBS, same window (forms one confirmed pool
+--   -- after the maintenance job runs)
+--   insert into ride_requests (user_id, origin, destination, party_size, target, window_start, window_end)
+--   select p.id, 'SECTOR_128', 'OBS', 1, '4', now(), now() + interval '60 minutes'
+--   from profiles p
+--   where p.email like 'demo0[1-4]@xxxxxxxxx';
+--
+--   -- 8 more singles spread over other routes
+--   insert into ride_requests (user_id, origin, destination, party_size, target, window_start, window_end)
+--   select p.id,
+--          (enum_range(null::place))[1 + (row_number() over ())::int % 4],
+--          (enum_range(null::place))[1 + ((row_number() over ())::int + 1) % 4],
+--          1, '4', now(), now() + interval '60 minutes'
+--   from profiles p
+--   where p.email like 'demo0[5-9]@xxxxxxxxx' or p.email like 'demo1[0-2]@xxxxxxxxx';
+--
+--   -- let the matcher seat them
+--   select public.run_pool_maintenance();
+-- commit;
