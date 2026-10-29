@@ -3,6 +3,10 @@
 
 create extension if not exists pgtap;
 
+-- Set test email domain (pgTAP tests run in a transaction that is rolled back,
+-- so this only affects the test run and doesn't persist)
+update app_config set value = '"example.edu"' where key = 'allowed_email_domain';
+
 -- Helper to set up authenticated context for a test user
 create or replace function test_as_user(p_email text) returns void
 language plpgsql security definer set search_path = public, pg_temp as $$

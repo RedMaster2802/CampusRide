@@ -54,7 +54,7 @@ Run in order with `supabase db reset`.
 
 | Key | Description |
 |-----|-------------|
-| `allowed_email_domain` | College email domain (e.g., `college.edu`) |
+| `allowed_email_domain` | College email domain (e.g., `mail.jiit.ac.in`) |
 | `meet_point_sector_128` | Meeting point name for Sector 128 |
 | `meet_point_sector_62` | Meeting point name for Sector 62 |
 | `meet_point_obs` | Meeting point name for OBS |

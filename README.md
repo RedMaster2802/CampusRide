@@ -38,7 +38,7 @@ Campus cab-pooling app for students. Share cabs with fellow students traveling t
 
 4. **Set app config** (in Supabase Dashboard SQL editor):
    ```sql
-   update app_config set value = '"your-college.edu"' where key = 'allowed_email_domain';
+   update app_config set value = '"mail.jiit.ac.in"' where key = 'allowed_email_domain';
    update app_config set value = '"Gate 1"' where key = 'meet_point_sector_128';
    update app_config set value = '"Gate 2"' where key = 'meet_point_sector_62';
    update app_config set value = '"Main Gate"' where key = 'meet_point_obs';
@@ -142,8 +142,13 @@ supabase db push
 Complete these steps before going live:
 
 - [ ] Replace all `"xxxxxxxxx"` placeholder values in `app_config` table:
-  - `allowed_email_domain` (e.g., `"your-college.edu"`)
+  - `allowed_email_domain` (e.g., `"mail.jiit.ac.in"`)
   - `meet_point_sector_128`, `meet_point_sector_62`, `meet_point_obs`, `meet_point_botanical_metro`
+- [ ] **Set the allowed email domain on the server** (required for server-side enforcement):
+  ```sql
+  update app_config set value = '"mail.jiit.ac.in"' where key = 'allowed_email_domain';
+  ```
+  Note: The value must keep the inner double quotes because the column is `jsonb`.
 - [ ] Set `route_fares` for all 12 route pairs (cap4_total_inr and cap6_total_inr)
 - [ ] Enable `pg_cron` extension in Supabase Dashboard (Database → Extensions)
 - [ ] Edit Auth email OTP template to show `{{ .Token }}` instead of the default magic link
@@ -153,8 +158,10 @@ Complete these steps before going live:
 - [ ] Set required Vercel environment variables:
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_ANON_KEY`
-  - `VITE_ALLOWED_EMAIL_DOMAIN`
+  - `VITE_ALLOWED_EMAIL_DOMAIN` (must be set to `mail.jiit.ac.in`)
   - (Optional) `VITE_USE_MOCK=false`
+  
+  **Important**: Vite bakes environment variables into the build at compile time. After changing `VITE_ALLOWED_EMAIL_DOMAIN` in Vercel, you must redeploy the site for the change to take effect.
 
 ## License
 

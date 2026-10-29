@@ -35,7 +35,7 @@ let config = {
   strike_block_threshold: 3,
   strike_block_days: 7,
   complete_after_minutes: 180,
-  allowed_email_domain: 'xxxxxxxxx',
+  allowed_email_domain: 'mail.jiit.ac.in',
   meet_point_sector_128: 'Sector 128 Gate',
   meet_point_sector_62: 'Sector 62 Gate',
   meet_point_obs: 'OBS Main Gate',
@@ -304,7 +304,8 @@ function buildActiveRide(userId: string): ActiveRide | null {
 
 export const mockApi: RideApi = {
   async sendOtp(email: string) {
-    if (!email.endsWith('@' + config.allowed_email_domain) && config.allowed_email_domain !== 'xxxxxxxxx') {
+    const domain = config.allowed_email_domain.toLowerCase();
+    if (!email.toLowerCase().endsWith('@' + domain)) {
       return { error: mkError('ERR_EMAIL_DOMAIN') };
     }
     // Simulate sending OTP

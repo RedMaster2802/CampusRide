@@ -28,12 +28,13 @@ export function Login() {
       const domain = ALLOWED_EMAIL_DOMAIN;
       // Skip domain check in mock mode or when not configured
       if (!domain || import.meta.env.VITE_USE_MOCK === 'true') return true;
-      return data.email.toLowerCase().endsWith('@' + domain.toLowerCase());
+      const email = data.email.trim().toLowerCase();
+      return email.endsWith('@' + domain.toLowerCase());
     },
     { message: (() => {
       const domain = ALLOWED_EMAIL_DOMAIN;
       if (!domain) return 'Invalid email domain configuration';
-      return `Must be a @${domain} email`;
+      return `Use your college email (@${domain})`;
     })(), path: ['email'] }
   );
 
@@ -50,8 +51,8 @@ export function Login() {
     
     if (result.error) {
       if (result.error.code === 'ERR_EMAIL_DOMAIN') {
-        setError('email', { message: `Must be a @${ALLOWED_EMAIL_DOMAIN} email` });
-        toast.error(`Must be a @${ALLOWED_EMAIL_DOMAIN} email`);
+        setError('email', { message: `Use your college email (@${ALLOWED_EMAIL_DOMAIN})` });
+        toast.error(`Use your college email (@${ALLOWED_EMAIL_DOMAIN})`);
       } else if (result.error.message?.includes('Database error')) {
         toast.error(`Use your college email (@${ALLOWED_EMAIL_DOMAIN})`);
       } else {
@@ -79,7 +80,7 @@ export function Login() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder={ALLOWED_EMAIL_DOMAIN ? `student@${ALLOWED_EMAIL_DOMAIN}` : 'student@college.edu'}
+              placeholder={ALLOWED_EMAIL_DOMAIN ? `enrollmentno@${ALLOWED_EMAIL_DOMAIN}` : 'student@college.edu'}
               className="w-full px-4 py-3 border border-border rounded-input text-text bg-white dark:bg-gray-800 focus:ring-1 focus:ring-accent"
               disabled={isLoading}
             />
