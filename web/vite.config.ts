@@ -11,7 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt'],
+      // favicon.ico and robots.txt are in public/ and will be copied automatically
       manifest: {
         name: 'GatePool',
         short_name: 'GatePool',
@@ -26,14 +26,22 @@ export default defineConfig({
             src: 'pwa-192.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'any',
           },
           {
             src: 'pwa-512.png',
             sizes: '512x512',
             type: 'image/png',
+            purpose: 'any',
           },
           {
-            src: 'pwa-512.png',
+            src: 'pwa-192-maskable.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
+            src: 'pwa-512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
@@ -50,7 +58,7 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        enabled: true,
+        enabled: false,
       },
     }),
   ],
@@ -71,19 +79,19 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+            if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router')) {
               return 'vendor';
             }
-            if (id.includes('@supabase/supabase-js')) {
+            if (id.includes('/@supabase/')) {
               return 'supabase';
             }
-            if (id.includes('@tanstack/react-query')) {
+            if (id.includes('/@tanstack/')) {
               return 'query';
             }
-            if (id.includes('react-hook-form') || id.includes('zod') || id.includes('@hookform/resolvers')) {
+            if (id.includes('/react-hook-form/') || id.includes('/zod/') || id.includes('/@hookform/')) {
               return 'forms';
             }
-            if (id.includes('lucide-react') || id.includes('sonner')) {
+            if (id.includes('/lucide-react/') || id.includes('/sonner/')) {
               return 'ui';
             }
             return 'vendor';

@@ -2,52 +2,46 @@
 // Realtime subscription to notifications table
 
 import { useEffect, useRef } from 'react';
-import { supabase } from '../api/supabase';
+import { api } from '../api';
 
 export function useRealtime(userId: string | undefined, poolId: string | undefined, onNotification: () => void) {
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<{ unsubscribe: () => void } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callbackRef = useRef(onNotification);
+  const isMock = import.meta.env.VITE_USE_MOCK === 'true';
+
+  // Update callback ref when it changes
+  useEffect(() => {
+    callbackRef.current = onNotification;
+  }, [onNotification]);
 
   useEffect(() => {
     if (!userId) return;
 
-    const isMock = import.meta.env.VITE_USE_MOCK === 'true';
-    
     if (isMock) {
+      // In mock mode, use polling
       const interval = setInterval(() => {
-        onNotification();
+        callbackRef.current();
       }, 3000);
       return () => clearInterval(interval);
     }
 
-    const channel = supabase
-      .channel('gatepool-user')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        (_payload) => {
-          if (debounceRef.current) clearTimeout(debounceRef.current);
-          debounceRef.current = setTimeout(() => {
-            onNotification();
-          }, 300);
-        }
-      )
-      .subscribe();
+    const subscription = api.subscribeToNotifications(userId, () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        callbackRef.current();
+      }, 300);
+    });
 
-    channelRef.current = channel;
+    channelRef.current = subscription;
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        channelRef.current.unsubscribe();
       }
     };
-  }, [userId, poolId, onNotification]);
+  }, [userId, isMock]);
 }
 
 export function useMockPolling(enabled: boolean, callback: () => void, interval = 3000) {

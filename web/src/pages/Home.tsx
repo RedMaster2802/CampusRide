@@ -81,6 +81,7 @@ export function Home() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dismissedExpiredId, setDismissedExpiredId] = useState<string | null>(null);
   const formData = watch();
 
   useEffect(() => {
@@ -129,6 +130,7 @@ export function Home() {
       });
       
       queryClient.setQueryData(['activeRide'], result);
+      setDismissedExpiredId(null);
 
       if (result.request.status === 'EXPIRED') {
         toast.error('No pool found this time');
@@ -148,8 +150,10 @@ export function Home() {
     }
   };
 
-  if (activeRide) {
-    return <ActiveRideView ride={activeRide} onRefresh={refetch} setValue={setValue as (name: string, value: any) => void} />;
+  const showActiveRide = activeRide && !(activeRide.request.status === 'EXPIRED' && activeRide.request.id === dismissedExpiredId);
+
+  if (showActiveRide) {
+    return <ActiveRideView ride={activeRide} onRefresh={refetch} setValue={setValue as (name: string, value: any) => void} setDismissedExpiredId={setDismissedExpiredId} />;
   }
 
   return (
@@ -225,9 +229,10 @@ interface ActiveRideViewProps {
   ride: any;
   onRefresh: () => void;
   setValue: (name: string, value: any) => void;
+  setDismissedExpiredId: (id: string | null) => void;
 }
 
-function ActiveRideView({ ride, onRefresh, setValue }: ActiveRideViewProps) {
+function ActiveRideView({ ride, onRefresh, setValue, setDismissedExpiredId }: ActiveRideViewProps) {
   const { user } = useAuth();
   const [cancelConfirm, setCancelConfirm] = useState(false);
 
@@ -390,6 +395,7 @@ function ActiveRideView({ ride, onRefresh, setValue }: ActiveRideViewProps) {
           title="No pool found this time"
           message="Not enough riders joined before the deadline."
           action={{ label: 'Search again', onClick: () => {
+            setDismissedExpiredId(request.id);
             setValue('from', request.origin);
             setValue('to', request.destination);
             setValue('party_size', request.party_size);
@@ -400,18 +406,6 @@ function ActiveRideView({ ride, onRefresh, setValue }: ActiveRideViewProps) {
             setValue('window_end', new Date(now.getTime() + windowDuration).toISOString());
             onRefresh();
           }}}
-        />
-      </div>
-    );
-  }
-
-  if (request.status === 'COMPLETED') {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <EmptyState
-          title="Ride completed"
-          message="Thanks for using GatePool"
-          action={{ label: 'Plan another ride', onClick: () => onRefresh() }}
         />
       </div>
     );

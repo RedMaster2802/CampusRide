@@ -3,6 +3,7 @@
 
 import { Navigate, useLocation } from 'react-router-dom';
 import { Routes as RRRoutes, Route as RRRoute } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useProfile } from './hooks/useProfile';
 import { Layout } from './components/Layout';
@@ -37,17 +38,12 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Dev page - only available in mock mode
-function DevPage() {
-  const isMock = import.meta.env.VITE_USE_MOCK === 'true';
-  if (!isMock) {
-    return <Navigate to="/" replace />;
-  }
-  // Dynamic import to exclude from production bundle
-  return <Dev />;
-}
-
-import { Dev } from './pages/Dev';
+// Dev page - only available in mock mode, lazy-loaded to exclude from production bundle
+const DevPage = lazy(() => 
+  import.meta.env.VITE_USE_MOCK === 'true' 
+    ? import('./pages/Dev').then(m => ({ default: m.Dev }))
+    : Promise.resolve({ default: () => <Navigate to="/" replace /> })
+);
 
 export function AppRoutes() {
   return (
@@ -63,7 +59,16 @@ export function AppRoutes() {
         <RRRoute path="/history" element={<RequireProfile><History /></RequireProfile>} />
         <RRRoute path="/profile" element={<RequireProfile><Profile /></RequireProfile>} />
         <RRRoute path="/how-it-works" element={<RequireProfile><HowItWorks /></RequireProfile>} />
-        <RRRoute path="/dev" element={<RequireAuth><DevPage /></RequireAuth>} />
+        <RRRoute 
+          path="/dev" 
+          element={
+            <RequireAuth>
+              <Suspense fallback={null}>
+                <DevPage />
+              </Suspense>
+            </RequireAuth>
+          } 
+        />
       </RRRoute>
 
       {/* Redirect root */}

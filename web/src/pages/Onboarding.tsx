@@ -6,6 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { Button } from '../components/Button';
 import { toast } from 'sonner';
@@ -23,6 +25,8 @@ type OnboardingForm = z.infer<typeof onboardingSchema>;
 
 export function Onboarding() {
   const { user, refreshUser } = useAuth();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<OnboardingForm>({
@@ -44,8 +48,10 @@ export function Onboarding() {
     if (result.error) {
       toast.error('Failed to save');
     } else {
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
       await refreshUser();
       toast.success('Profile saved');
+      navigate('/', { replace: true });
     }
   };
 

@@ -1,9 +1,7 @@
 // web/src/components/Layout.tsx
 // Layout with bottom tab bar
 
-import { Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import { Button } from './Button';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 const TABS = [
   { path: '/', label: 'Ride' },
@@ -13,7 +11,7 @@ const TABS = [
 
 export function Layout() {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -30,7 +28,7 @@ export function Layout() {
           {TABS.map((tab) => (
             <button
               key={tab.path}
-              onClick={() => window.location.href = tab.path}
+              onClick={() => navigate(tab.path)}
               className={`py-3 px-4 text-sm font-medium transition-colors ${
                 location.pathname === tab.path
                   ? 'text-accent border-t-2 border-accent -mt-px'

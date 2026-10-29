@@ -2,7 +2,7 @@
 // Time window picker with quick chips and custom
 
 import { useState, useMemo } from 'react';
-import { formatTime, formatDate, formatDateTime, isToday, isTomorrow, parseLocalToIST, getISTNow } from '../lib/time';
+import { formatTime, formatDateTime, getISTNow, getISTDateString, parseLocalToIST, parseCustomWindow } from '../lib/time';
 
 interface TimeWindowPickerProps {
   windowStart: string;
@@ -30,17 +30,14 @@ export function TimeWindowPicker({
   disabled 
 }: TimeWindowPickerProps) {
   const [mode, setMode] = useState<'quick' | 'custom'>('quick');
-  const [customDate, setCustomDate] = useState(() => {
-    const d = new Date(windowStart);
-    return d.toISOString().split('T')[0];
-  });
+  const [customDate, setCustomDate] = useState(() => getISTDateString(new Date(windowStart)));
   const [customStartTime, setCustomStartTime] = useState(() => formatTime(windowStart).slice(0, 5));
   const [customEndTime, setCustomEndTime] = useState(() => formatTime(windowEnd).slice(0, 5));
 
   const now = getISTNow();
-  const todayStr = now.toISOString().split('T')[0];
-  const tomorrowStr = new Date(now.getTime() + 86400000).toISOString().split('T')[0];
-  const maxDate = new Date(now.getTime() + maxAdvanceMinutes * 60000).toISOString().split('T')[0];
+  const todayStr = getISTDateString(now);
+  const tomorrowStr = getISTDateString(new Date(now.getTime() + 86400000));
+  const maxDate = getISTDateString(new Date(now.getTime() + maxAdvanceMinutes * 60000));
 
   const handleQuickSelect = (minutes: number) => {
     const start = new Date(now);
@@ -50,18 +47,20 @@ export function TimeWindowPicker({
 
   const handleCustomChange = () => {
     if (!customDate || !customStartTime || !customEndTime) return;
-    const start = parseLocalToIST(customDate, customStartTime);
-    const end = parseLocalToIST(customDate, customEndTime);
-    onChange(start, end);
+    const result = parseCustomWindow(customDate, customStartTime, customEndTime, maxWindowMinutes);
+    if (result) {
+      onChange(result.start, result.end);
+    }
   };
 
   const isValidCustom = useMemo(() => {
     if (!customDate || !customStartTime || !customEndTime) return false;
-    const start = new Date(parseLocalToIST(customDate, customStartTime));
-    const end = new Date(parseLocalToIST(customDate, customEndTime));
-    const diff = (end.getTime() - start.getTime()) / 60000;
-    return diff >= minWindowMinutes && diff <= maxWindowMinutes && start >= now && start <= new Date(now.getTime() + maxAdvanceMinutes * 60000);
-  }, [customDate, customStartTime, customEndTime, minWindowMinutes, maxWindowMinutes, maxAdvanceMinutes]);
+    const result = parseCustomWindow(customDate, customStartTime, customEndTime, maxWindowMinutes);
+    if (!result) return false;
+    const start = new Date(result.start);
+    const nowInstant = new Date();
+    return start >= nowInstant && start <= new Date(nowInstant.getTime() + maxAdvanceMinutes * 60000);
+  }, [customDate, customStartTime, customEndTime, maxWindowMinutes, maxAdvanceMinutes]);
 
   return (
     <div className="space-y-4">

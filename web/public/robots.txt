@@ -1,0 +1,11 @@
+# robots.txt for GatePool
+User-agent: *
+Allow: /
+
+# Disallow private routes
+Disallow: /verify
+Disallow: /onboarding
+Disallow: /profile
+Disallow: /history
+
+Sitemap: https://gatepool.app/sitemap.xml

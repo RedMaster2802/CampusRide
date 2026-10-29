@@ -18,13 +18,12 @@ Campus cab-pooling app for students. Share cabs with fellow students traveling t
 
 ### Local Development
 
-1. **Start Supabase**
+1. **Start Supabase** (from repository root)
    ```bash
-   cd supabase
    supabase start
    ```
 
-2. **Apply migrations**
+2. **Apply migrations** (from repository root)
    ```bash
    supabase db reset
    ```
@@ -61,7 +60,7 @@ Campus cab-pooling app for students. Share cabs with fellow students traveling t
    npm run dev
    ```
 
-6. **Open** http://localhost:5173
+7. **Open** http://localhost:5173
 
 ### Mock Mode (no Supabase required)
 
@@ -76,7 +75,7 @@ npm run dev
 ```
 gatepool/
 ├── supabase/           # Backend (PostgreSQL)
-│   ├── migrations/     # SQL migrations (0001-0004)
+│   ├── migrations/     # SQL migrations (0001-0005)
 │   ├── tests/          # pgTAP tests
 │   ├── loadtest/       # Load testing scripts
 │   ├── seed.sql        # Demo data
@@ -88,7 +87,6 @@ gatepool/
 │   │   ├── hooks/      # Custom React hooks
 │   │   ├── lib/        # Utilities (time, errors, etc.)
 │   │   ├── pages/      # Page components
-│   │   ├── hooks/      # Custom hooks
 │   │   └── types/      # TypeScript types
 │   ├── public/         # Static assets
 │   └── package.json
@@ -107,12 +105,14 @@ gatepool/
 ## Testing
 
 ### Backend Tests
+
+From repository root:
 ```bash
-cd supabase
 supabase test db
 ```
 
 ### Frontend Tests
+
 ```bash
 cd web
 npm run test          # Vitest unit tests
@@ -123,24 +123,38 @@ npm run lint          # ESLint
 ## Deployment
 
 ### Supabase (Production)
+
+From repository root:
 ```bash
 supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
 ### Frontend (Vercel/Netlify/Cloudflare Pages)
+
 - Root directory: `web`
 - Build command: `npm run build`
 - Output directory: `dist`
 - Environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_ALLOWED_EMAIL_DOMAIN`
 
-### Required Supabase Dashboard Settings
-1. Enable `pg_cron` extension
-2. Set Auth email OTP template to show `{{ .Token }}`
-3. Configure custom SMTP
-4. Set `allowed_email_domain` and meeting points in `app_config`
-5. Set `route_fares` for each route
-6. Configure Site URL and redirect URLs
+## Production Setup Checklist
+
+Complete these steps before going live:
+
+- [ ] Replace all `"xxxxxxxxx"` placeholder values in `app_config` table:
+  - `allowed_email_domain` (e.g., `"your-college.edu"`)
+  - `meet_point_sector_128`, `meet_point_sector_62`, `meet_point_obs`, `meet_point_botanical_metro`
+- [ ] Set `route_fares` for all 12 route pairs (cap4_total_inr and cap6_total_inr)
+- [ ] Enable `pg_cron` extension in Supabase Dashboard (Database → Extensions)
+- [ ] Edit Auth email OTP template to show `{{ .Token }}` instead of the default magic link
+- [ ] Configure custom SMTP in Supabase Dashboard (Auth → SMTP Settings)
+- [ ] Set Site URL and redirect URLs in Supabase Dashboard (Auth → URL Configuration)
+- [ ] Do **NOT** enable CAPTCHA until the frontend sends a captcha token (the current frontend does not)
+- [ ] Set required Vercel environment variables:
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
+  - `VITE_ALLOWED_EMAIL_DOMAIN`
+  - (Optional) `VITE_USE_MOCK=false`
 
 ## License
 

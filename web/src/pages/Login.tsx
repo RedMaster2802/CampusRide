@@ -1,7 +1,7 @@
 // web/src/pages/Login.tsx
 // Login page with email input and OTP send
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,17 +16,25 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-const ALLOWED_EMAIL_DOMAIN = import.meta.env.VITE_ALLOWED_EMAIL_DOMAIN || 'xxxxxxxxx';
+const ALLOWED_EMAIL_DOMAIN = import.meta.env.VITE_ALLOWED_EMAIL_DOMAIN || '';
 
 export function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
-  const [resendCooldown, setResendCooldown] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   const schema = loginSchema.refine(
-    (data) => data.email.endsWith('@' + ALLOWED_EMAIL_DOMAIN) || ALLOWED_EMAIL_DOMAIN === 'xxxxxxxxx',
-    { message: `Must be a @${ALLOWED_EMAIL_DOMAIN} email`, path: ['email'] }
+    (data) => {
+      const domain = ALLOWED_EMAIL_DOMAIN;
+      // Skip domain check in mock mode or when not configured
+      if (!domain || import.meta.env.VITE_USE_MOCK === 'true') return true;
+      return data.email.toLowerCase().endsWith('@' + domain.toLowerCase());
+    },
+    { message: (() => {
+      const domain = ALLOWED_EMAIL_DOMAIN;
+      if (!domain) return 'Invalid email domain configuration';
+      return `Must be a @${domain} email`;
+    })(), path: ['email'] }
   );
 
   const { register, handleSubmit, formState: { errors }, setError } = useForm<LoginForm>({
@@ -35,26 +43,25 @@ export function Login() {
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
-    const result = await signIn(data.email);
+    // Lowercase and trim email before sending
+    const email = data.email.trim().toLowerCase();
+    const result = await signIn(email);
     setIsLoading(false);
     
     if (result.error) {
-      setError('email', { message: result.error.code });
-      toast.error(result.error.code === 'ERR_EMAIL_DOMAIN' ? `Must be a @${ALLOWED_EMAIL_DOMAIN} email` : 'Failed to send code');
+      if (result.error.code === 'ERR_EMAIL_DOMAIN') {
+        setError('email', { message: `Must be a @${ALLOWED_EMAIL_DOMAIN} email` });
+        toast.error(`Must be a @${ALLOWED_EMAIL_DOMAIN} email`);
+      } else if (result.error.message?.includes('Database error')) {
+        toast.error(`Use your college email (@${ALLOWED_EMAIL_DOMAIN})`);
+      } else {
+        toast.error('Failed to send code');
+      }
     } else {
       toast.success('Check your college mail for a 6-digit code');
-      setResendCooldown(30);
-      navigate('/verify', { state: { email: data.email }, replace: true });
+      navigate('/verify', { state: { email }, replace: true });
     }
   };
-
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const interval = setInterval(() => {
-      setResendCooldown(c => c > 0 ? c - 1 : 0);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [resendCooldown]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -72,15 +79,15 @@ export function Login() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder={`student@${ALLOWED_EMAIL_DOMAIN}`}
+              placeholder={ALLOWED_EMAIL_DOMAIN ? `student@${ALLOWED_EMAIL_DOMAIN}` : 'student@college.edu'}
               className="w-full px-4 py-3 border border-border rounded-input text-text bg-white dark:bg-gray-800 focus:ring-1 focus:ring-accent"
-              disabled={isLoading || resendCooldown > 0}
+              disabled={isLoading}
             />
             {errors.email && <p className="text-sm text-danger mt-1">{errors.email.message}</p>}
           </div>
 
-          <Button type="submit" fullWidth loading={isLoading} disabled={resendCooldown > 0}>
-            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Send code'}
+          <Button type="submit" fullWidth loading={isLoading}>
+            Send code
           </Button>
         </form>
 

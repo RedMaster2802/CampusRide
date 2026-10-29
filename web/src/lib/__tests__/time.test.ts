@@ -1,6 +1,6 @@
 // web/src/lib/__tests__/time.test.ts
-import { describe, it, expect } from 'vitest';
-import { formatTime, formatDate, formatDateTime, formatCountdown, isToday, isTomorrow, parseLocalToIST, getISTNow } from '../time';
+import { describe, it, expect, vi } from 'vitest';
+import { formatTime, formatDate, formatDateTime, formatCountdown, isToday, isTomorrow, parseLocalToIST, getISTNow, getISTDateString, toISOWithOffset, parseCustomWindow } from '../time';
 
 describe('time utilities', () => {
   describe('formatTime', () => {
@@ -93,6 +93,86 @@ describe('time utilities', () => {
     it('returns a Date object', () => {
       const result = getISTNow();
       expect(result).toBeInstanceOf(Date);
+    });
+
+    it('returns the actual current instant (not shifted)', () => {
+      const before = Date.now();
+      const result = getISTNow();
+      const after = Date.now();
+      expect(result.getTime()).toBeGreaterThanOrEqual(before);
+      expect(result.getTime()).toBeLessThanOrEqual(after);
+    });
+  });
+
+  describe('getISTDateString', () => {
+    it('returns YYYY-MM-DD in IST', () => {
+      // 2026-10-29T00:00:00Z is 2026-10-29T05:30:00+05:30 (IST)
+      const date = new Date('2026-10-29T00:00:00Z');
+      expect(getISTDateString(date)).toBe('2026-10-29');
+    });
+
+    it('handles IST midnight edge case (00:00 IST = 18:30 UTC previous day)', () => {
+      // 2026-10-28T18:30:00Z is 2026-10-29T00:00:00+05:30 (IST midnight)
+      const date = new Date('2026-10-28T18:30:00Z');
+      expect(getISTDateString(date)).toBe('2026-10-29');
+    });
+
+    it('returns correct date in non-IST timezone (simulated via UTC)', () => {
+      // In a browser with non-IST timezone, the UTC instant should still map to correct IST date
+      // 2026-10-29T12:00:00Z = 2026-10-29T17:30:00+05:30
+      const date = new Date('2026-10-29T12:00:00Z');
+      expect(getISTDateString(date)).toBe('2026-10-29');
+    });
+  });
+
+  describe('toISOWithOffset', () => {
+    it('formats Date as ISO with +05:30 offset', () => {
+      // 2026-10-29T10:30:00Z = 2026-10-29T16:00:00+05:30
+      const date = new Date('2026-10-29T10:30:00Z');
+      const result = toISOWithOffset(date);
+      expect(result).toBe('2026-10-29T16:00:00.000+05:30');
+    });
+
+    it('does not apply offset twice', () => {
+      const date = new Date('2026-10-29T10:30:00Z');
+      const result = toISOWithOffset(date);
+      // Should be exactly 5.5 hours ahead of UTC
+      const parsed = new Date(result);
+      expect(parsed.getTime()).toBe(date.getTime());
+    });
+  });
+
+  describe('parseCustomWindow', () => {
+    it('parses normal window (end after start)', () => {
+      const result = parseCustomWindow('2026-10-29', '10:00', '12:00', 180);
+      expect(result).not.toBeNull();
+      expect(result!.start).toMatch(/2026-10-29T04:30:00/); // 10:00 IST = 04:30 UTC
+      expect(result!.end).toMatch(/2026-10-29T06:30:00/);   // 12:00 IST = 06:30 UTC
+    });
+
+    it('parses window crossing midnight (end earlier than start)', () => {
+      const result = parseCustomWindow('2026-10-29', '22:00', '00:30', 180); // 2.5 hours
+      expect(result).not.toBeNull();
+      expect(result!.start).toMatch(/2026-10-29T16:30:00/); // 22:00 IST = 16:30 UTC
+      expect(result!.end).toMatch(/2026-10-29T19:00:00/);   // 00:30 IST next day = 19:00 UTC (same UTC day)
+    });
+
+    it('rejects window exceeding maxWindowMinutes', () => {
+      const result = parseCustomWindow('2026-10-29', '10:00', '14:00', 180); // 4 hours = 240 min
+      expect(result).toBeNull();
+    });
+
+    it('accepts window exactly at maxWindowMinutes', () => {
+      const result = parseCustomWindow('2026-10-29', '10:00', '13:00', 180); // 3 hours = 180 min
+      expect(result).not.toBeNull();
+    });
+
+    it('handles IST midnight edge case for crossing midnight', () => {
+      // Start at 23:30 IST, end at 00:30 IST next day (1 hour window)
+      const result = parseCustomWindow('2026-10-29', '23:30', '00:30', 180);
+      expect(result).not.toBeNull();
+      const diff = (new Date(result!.end).getTime() - new Date(result!.start).getTime()) / 60000;
+      expect(diff).toBe(60);
     });
   });
 });

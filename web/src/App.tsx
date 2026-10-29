@@ -19,8 +19,30 @@ const queryClient = new QueryClient({
   },
 });
 
+function ConfigError() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background text-text">
+      <div className="max-w-md w-full text-center space-y-4">
+        <h1 className="text-2xl font-semibold">App is not configured</h1>
+        <p className="text-text-secondary">
+          Missing required environment variables. Please set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>.
+        </p>
+        <p className="text-xs text-text-secondary">
+          For local development, you can set <code>VITE_USE_MOCK=true</code> to use the mock backend.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function App() {
   const isOnline = useOnline();
+  const isMock = import.meta.env.VITE_USE_MOCK === 'true';
+  const hasConfig = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+
+  if (!isMock && !hasConfig) {
+    return <ConfigError />;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

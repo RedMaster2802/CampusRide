@@ -21,6 +21,7 @@ const poolMembers: Map<string, any> = new Map();
 const notifications: Map<string, any> = new Map();
 
 let currentUserId: string | null = null;
+const authCallbacks = new Set<(user: { id: string; email: string } | null) => void>();
 let config = {
   min_window_minutes: 30,
   max_window_minutes: 180,
@@ -58,6 +59,10 @@ function mkError(code: string, detail?: string): ApiError {
   err.code = code;
   err.detail = detail;
   return err;
+}
+
+function notifyAuthChange(user: { id: string; email: string } | null) {
+  authCallbacks.forEach(cb => cb(user));
 }
 
 function getMeetingPoint(origin: Place): string {
@@ -316,11 +321,38 @@ export const mockApi: RideApi = {
       users.set(user.id, user);
     }
     currentUserId = user.id;
+    notifyAuthChange({ id: user.id, email: user.email });
     return { error: null };
   },
 
   async signOut() {
     currentUserId = null;
+    notifyAuthChange(null);
+  },
+
+  async getSession() {
+    if (!currentUserId) return { user: null };
+    const u = users.get(currentUserId);
+    if (!u) return { user: null };
+    return { user: { id: u.id, email: u.email } };
+  },
+
+  onAuthStateChange(callback: (user: { id: string; email: string } | null) => void) {
+    authCallbacks.add(callback);
+    // Immediately call with current user
+    if (currentUserId) {
+      const u = users.get(currentUserId);
+      if (u) callback({ id: u.id, email: u.email });
+    } else {
+      callback(null);
+    }
+    return { unsubscribe: () => authCallbacks.delete(callback) };
+  },
+
+  subscribeToNotifications(userId: string, callback: () => void) {
+    // In mock mode, we don't need real subscriptions
+    // The polling is handled by useMockPolling in useRealtime.ts
+    return { unsubscribe: () => {} };
   },
 
   async getProfile() {

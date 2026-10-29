@@ -2,9 +2,14 @@
 // Authentication hook
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
-import { supabase } from '../api/supabase';
-import type { User } from '@supabase/supabase-js';
+import { clearConfigCache } from '../lib/config';
+
+interface User {
+  id: string;
+  email: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -20,20 +25,21 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null);
+    api.getSession().then(({ user }) => {
+      setUser(user);
       setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
+    const { unsubscribe } = api.onAuthStateChange((user) => {
+      setUser(user);
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   const signIn = async (email: string) => {
@@ -50,12 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await api.signOut();
+    queryClient.clear();
+    clearConfigCache();
     setUser(null);
   };
 
   const refreshUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setUser(session?.user || null);
+    const { user } = await api.getSession();
+    setUser(user);
   };
 
   return (

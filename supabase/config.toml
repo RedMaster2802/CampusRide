@@ -1,17 +1,57 @@
-[project]
-ref = "local"
+# supabase/config.toml
+# Minimal Supabase CLI config matching current schema
+
+project_id = "campusride"
 
 [api]
+enabled = true
 port = 54321
+schemas = ["public", "graphql_public"]
+max_rows = 1000
 
 [db]
 port = 54322
+shadow_port = 54320
+major_version = 17
 
 [studio]
+enabled = true
 port = 54323
+api_url = "http://localhost:54321"
 
 [inbucket]
+enabled = true
 port = 54324
+pop3_port = 54325
+smtp_port = 54326
 
 [auth]
-port = 54325
+enabled = true
+port = 54327
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/verify"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+min_password_length = 8
+password_requirements = ""
+email_otp_expiry = 600
+sms_otp_expiry = 600
+email_otp_length = 6
+sms_otp_length = 6
+email_change_confirm = true
+enable_email_confirm = true
+enable_phone_confirm = false
+enable_phone_signup = false
+double_confirm_changes = true
+external_phone_providers = []
+external_email_providers = []
+external_oauth_providers = []
+hook_secrets = ""
+smtp_admin_email = ""
+smtp_host = ""
+smtp_port = "587"
+smtp_user = ""
+smtp_pass = ""
+smtp_sender_name = ""
+smtp_sender_email = ""

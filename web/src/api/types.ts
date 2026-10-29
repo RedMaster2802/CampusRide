@@ -23,6 +23,11 @@ export interface RideApi {
   sendOtp(email: string): Promise<{ error: ApiError | null }>;
   verifyOtp(email: string, token: string): Promise<{ error: ApiError | null }>;
   signOut(): Promise<void>;
+  getSession(): Promise<{ user: { id: string; email: string } | null }>;
+  onAuthStateChange(callback: (user: { id: string; email: string } | null) => void): { unsubscribe: () => void };
+  
+  // Realtime
+  subscribeToNotifications(userId: string, callback: () => void): { unsubscribe: () => void };
   
   // Profile
   getProfile(): Promise<{ full_name: string; phone: string | null; share_phone: boolean } | null>;

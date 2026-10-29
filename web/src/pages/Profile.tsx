@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../api';
 import { useProfile } from '../hooks/useProfile';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../components/Button';
 import { toast } from 'sonner';
 
@@ -27,6 +28,7 @@ export function Profile() {
   const { user, signOut, refreshUser } = useAuth();
   const { data: profile } = useProfile();
   const { prompt, isInstalled, isIOS, install } = useInstallPrompt();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, watch, setValue, reset } = useForm<ProfileForm>({
@@ -57,6 +59,7 @@ export function Profile() {
     if (result.error) {
       toast.error('Failed to save');
     } else {
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast.success('Saved');
       await refreshUser();
     }
