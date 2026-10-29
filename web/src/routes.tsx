@@ -71,8 +71,6 @@ export function AppRoutes() {
         />
       </RRRoute>
 
-      {/* Redirect root */}
-      <RRRoute index element={<Navigate to="/" replace />} />
       <RRRoute path="*" element={<Navigate to="/" replace />} />
     </RRRoutes>
   );
